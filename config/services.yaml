@@ -1,0 +1,9 @@
+services:
+  assistant-server:
+    display_name: "Assistant Server"
+    systemd_unit: "assistant-server.service"
+    health_url: "http://127.0.0.1:8000/health"
+    activity_url: "http://127.0.0.1:8000/activity"
+    public_url: "http://server.local:8000"
+    idle_timeout_seconds: 300
+    enabled: true

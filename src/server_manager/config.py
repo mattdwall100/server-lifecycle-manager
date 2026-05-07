@@ -1,0 +1,80 @@
+"""config.py
+
+Loads environment variables and services.yaml.
+
+ read .env settings
+- load services.yaml
+- expose service registry
+- validate required fields
+"""
+
+from functools import lru_cache
+from typing import Literal
+
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from pathlib import Path
+import yaml
+
+from .schemas import ServiceConfig, ServiceNotFoundError
+
+
+class Settings(BaseSettings):
+    app_name: str = "Server_Manager"
+    api_host: str = Field(default="0.0.0.0", alias="SERVER_MANAGER_HOST")
+    api_port: int = Field(default=9000, alias="SERVER_MANAGER_PORT")
+    app_env: Literal["dev", "test", "prod"] = Field(default="dev", alias="SERVER_MANAGER_ENV")
+    log_level: str = Field(default="INFO", alias="LOG_LEVEL")
+
+    services_config_path: str = Field(default="config/services.yaml", alias="SERVICES_CONFIG_PATH")
+    systemd_configs_path: str = Field(
+        default="config/systemd-configs", alias="SERVICES_SYSTEMD_CONFIGS_PATH"
+    )
+
+    # We configure the settings model to read from a .env file, and to ignore any extra fields that are not defined in the model. This allows us to have a flexible configuration setup, where we can easily add new settings without having to worry about validation errors for unknown fields.
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+
+# lru_cache is a decorator that allows us to cache the result of the get_settings function, so that it only reads the configuration from the environment variables once, and then returns the cached settings object on subsequent calls. This can improve performance by avoiding unnecessary re-reading of environment variables, while still allowing us to easily access the settings throughout our application.
+@lru_cache(maxsize=1)
+def get_LM_settings() -> Settings:
+    return Settings()
+
+
+class ServiceConfigRegistry:
+    def __init__(self, service_configs: dict[str, ServiceConfig]):
+        self.__registry = service_configs
+
+    @classmethod
+    def _from_yaml(cls, config_path: str) -> "ServiceConfigRegistry":
+        """Constructor method to create a ServiceConfigRegistry instance from a YAML file."""
+        path = Path(config_path)
+        with path.open("r", encoding="utf-8") as f:
+            raw = yaml.safe_load(f) or {}
+        raw_services = raw.get("services", {})
+
+        services: dict[str, ServiceConfig] = {}
+
+        for name, config_data in raw_services.items():
+            try:
+                services[name] = ServiceConfig(
+                    name=name,
+                    **config_data,
+                )
+            except Exception as e:
+                raise ValueError(f"Invalid config for service '{name}': {e}") from e
+
+        return cls(services)
+
+    def get(self, name: str) -> ServiceConfig:
+        if name not in self.__registry:
+            raise ServiceNotFoundError(f"Service {name} not found in config registry")
+        else:
+            return self.__registry[name]
+
+    def list_services(self) -> list[str]:
+        return list(self.__registry.keys())
+
+    def exists(self, name: str) -> bool:
+        return name in self.__registry
