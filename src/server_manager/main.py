@@ -26,21 +26,22 @@ def create_app():
 
     monitor = Monitor(
         orchestrator=orchestrator,
-        interval_seconds=settings.monitor_interval_seconds,
+        timeout_interval=settings.timeout_interval,
+        check_pending_interval=settings.check_pending_interval,
     )
 
     # Asynchronous custom context manager is a param for fastapi app for start and end tasks
     @asynccontextmanager
-    async def lifespan():
+    async def lifespan(app: FastAPI):
         monitor.start()
         yield
         # await because monitor.stop is an async task and we want it to complete
         await monitor.stop()
 
-    app = FastAPI(title=settings.app_name)
+    app = FastAPI(title=settings.app_name, lifespan=lifespan)
     app.state.orchestrator = orchestrator
 
-    app.include_router(router, lifespan=lifespan)
+    app.include_router(router)
     return app
 
     
@@ -52,7 +53,7 @@ if __name__ == "__main__":
     # app = create_app(settings)
 
     uvicorn.run(
-        "server_manager.main:create_app",
+        f"src.server_manager.main:create_app",
         factory=True,
         host=settings.api_host,
         port=settings.api_port,

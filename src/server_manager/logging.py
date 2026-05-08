@@ -2,9 +2,9 @@
 
 import logging
 
-from .config import get_settings
+from .config import get_LM_settings
 
-settings = get_settings()
+settings = get_LM_settings()
 
 logging.basicConfig(
     level=getattr(logging, settings.log_level),

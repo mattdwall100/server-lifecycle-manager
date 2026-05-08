@@ -18,7 +18,7 @@ def get_services(orchestrator: Orchestrator = Depends(get_orchestrator)) -> Serv
     )
 
 
-@router.get("/services/{name}/status", response_model=ServiceStatusResponse)
+@router.get("/services/{name}/status", response_model=StatusResponse)
 def get_service_status(name: str, orchestrator: Orchestrator = Depends(get_orchestrator)) -> ServiceStatusResponse:
     # validate name
     # call orchesrator.get_status(name)

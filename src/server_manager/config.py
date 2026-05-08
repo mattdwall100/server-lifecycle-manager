@@ -11,13 +11,13 @@ Loads environment variables and services.yaml.
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from pathlib import Path
 import yaml
 
-from .schemas import ServiceConfig, ServiceNotFoundError
+from .schemas import ServiceNotFoundError
 
 
 class Settings(BaseSettings):
@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     api_port: int = Field(default=9000, alias="SERVER_MANAGER_PORT")
     app_env: Literal["dev", "test", "prod"] = Field(default="dev", alias="SERVER_MANAGER_ENV")
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
+    timeout_interval: int = Field(default=30, alias="TIMEOUT_INTERVAL")
+    check_pending_interval: int = Field(default=2, alias="CHECK_PENDING_INTERVAL")
 
     services_config_path: str = Field(default="config/services.yaml", alias="SERVICES_CONFIG_PATH")
     systemd_configs_path: str = Field(
@@ -40,6 +42,19 @@ class Settings(BaseSettings):
 @lru_cache(maxsize=1)
 def get_LM_settings() -> Settings:
     return Settings()
+
+
+class ServiceConfig(BaseModel):
+    display_name: str
+    compose_file: str
+    compose_service: str
+    container_name: str
+    health_url: str | None = None
+    activity_url: str | None = None
+    public_url: str | None = None
+    idle_timeout_seconds: int = 600
+    enabled: bool = True
+    clean_up: dict[str, str] | None = None
 
 
 class ServiceConfigRegistry:

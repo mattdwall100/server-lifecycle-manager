@@ -1,9 +1,13 @@
 services:
   assistant-server:
     display_name: "Assistant Server"
-    systemd_unit: "assistant-server.service"
+    compose_file: "/services/local-assistant-server/docker-compose.yml"
+    compose_service: "local-assistant-server"
+    container_name: "local-assistant-server"
     health_url: "http://127.0.0.1:8000/health"
     activity_url: "http://127.0.0.1:8000/activity"
     public_url: "http://server.local:8000"
     idle_timeout_seconds: 300
     enabled: true
+    clean_up:
+      ollama_unload: systemctl stop ollama
