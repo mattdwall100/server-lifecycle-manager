@@ -20,8 +20,6 @@ def get_services(orchestrator: Orchestrator = Depends(get_orchestrator)) -> Serv
 
 @router.get("/services/{name}/status", response_model=StatusResponse)
 def get_service_status(name: str, orchestrator: Orchestrator = Depends(get_orchestrator)) -> ServiceStatusResponse:
-    # validate name
-    # call orchesrator.get_status(name)
     try:
         status = orchestrator.get_status(name)
         return StatusResponse(
@@ -62,7 +60,6 @@ def start_service(name: str, orchestrator: Orchestrator = Depends(get_orchestrat
 
 @router.post("/services/{name}/stop")
 def stop_service(name: str, orchestrator: Orchestrator = Depends(get_orchestrator)) -> ServiceStatus:
-    # validate name
     try:
         orchestrator.stop(name)
         return SuccessResponse(

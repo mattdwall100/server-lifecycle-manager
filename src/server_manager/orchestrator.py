@@ -73,7 +73,7 @@ class Orchestrator:
         return self.status_manager.get_status(name)
     
     def get_seconds_until_sleep(self, name: str) -> float:
-        return self.status_manager(name)
+        return self.status_manager.get_seconds_until_sleep(name)
 
     def get_name_by_status(
         self, status_list: list[Literal["on", "off", "starting", "stopping"]]

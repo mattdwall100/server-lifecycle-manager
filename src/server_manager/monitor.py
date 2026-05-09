@@ -58,11 +58,14 @@ class Monitor:
         while True:
             on_services = self.orchestrator.get_name_by_status(["on"])
             for name in on_services:
-                seconds_until_sleep = await self.orchestrator.get_seconds_until_sleep(name)
+                seconds_until_sleep = self.orchestrator.get_seconds_until_sleep(name)
                 if seconds_until_sleep is not None and seconds_until_sleep < 0:
                     # If we are potentially past idle time, we need to check and (if idle) terminate
                     logger.info(f"Checking for idle | name={name}")
-                    self.orchestrator.stop_if_idle(name) # Make await when async runtime
+                    try:
+                        self.orchestrator.stop_if_idle(name) # Make the awaitable portion await (async runtime) 
+                    except Exception as e:
+                        logger.error(f"_timeout_loop failed | exception: {e}")
 
             await asyncio.sleep(self.timeout_interval)
 
@@ -74,7 +77,11 @@ class Monitor:
                 ["starting", "stopping"]
             )
             for name in pending_service_names:
-                new_status = self.orchestrator.update_status(name)
+                try:
+                    new_status = self.orchestrator.update_status(name)
+                except Exception as e:
+                    logger.error(f"_check_pending_loop failed | exception: {e}")
+
                 if new_status in ["on", "off"]:
                     logger.info(f"Pending Ended | service={name}, status={new_status}")
 
