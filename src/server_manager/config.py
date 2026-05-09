@@ -9,13 +9,12 @@ Loads environment variables and services.yaml.
 """
 
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal
 
-from pydantic import Field, BaseModel
-from pydantic_settings import BaseSettings, SettingsConfigDict
-
-from pathlib import Path
 import yaml
+from pydantic import BaseModel, Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from .schemas import ServiceNotFoundError
 
@@ -34,11 +33,9 @@ class Settings(BaseSettings):
         default="config/systemd-configs", alias="SERVICES_SYSTEMD_CONFIGS_PATH"
     )
 
-    # We configure the settings model to read from a .env file, and to ignore any extra fields that are not defined in the model. This allows us to have a flexible configuration setup, where we can easily add new settings without having to worry about validation errors for unknown fields.
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
 
-# lru_cache is a decorator that allows us to cache the result of the get_settings function, so that it only reads the configuration from the environment variables once, and then returns the cached settings object on subsequent calls. This can improve performance by avoiding unnecessary re-reading of environment variables, while still allowing us to easily access the settings throughout our application.
 @lru_cache(maxsize=1)
 def get_LM_settings() -> Settings:
     return Settings()

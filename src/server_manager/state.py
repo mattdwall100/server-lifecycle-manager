@@ -1,9 +1,11 @@
-from .config import ServiceConfigRegistry
-from .runtime import Runtime
+from datetime import datetime
 from typing import Literal
-from .schemas import ServiceNotFoundError
+
 from pydantic import BaseModel, ConfigDict, Field
 
+from .config import ServiceConfigRegistry
+from .runtime import Runtime
+from .schemas import ServiceNotFoundError
 
 
 class ServiceStatus(BaseModel):
@@ -27,7 +29,7 @@ class ServiceStatus(BaseModel):
 
     @status.setter
     def status(self, value: Literal["on", "off", "starting", "stopping"]):
-        if not value in ["on", "off", "starting", "stopping"]:
+        if value not in ["on", "off", "starting", "stopping"]:
             raise ValueError(f"Invalid value for status: {value}")
         self._status = value
 
@@ -36,7 +38,7 @@ class ServiceStatus(BaseModel):
     def seconds_until_sleep(self):
         if self.status != "on":
             raise AttributeError("Service isnt on, cannot get seconds until sleep")
-        
+
         if self._last_activity_at is None:
             self._seconds_until_sleep = (
                 self.idle_timeout_seconds
@@ -50,7 +52,7 @@ class ServiceStatus(BaseModel):
 
         self._seconds_until_sleep = self.idle_timeout_seconds - seconds_since_last_activity
         # If negative, will update poll for activity, if still negative, turn off
-        return self._seconds_until_sleep 
+        return self._seconds_until_sleep
 
 
 class StatusManager:
@@ -81,20 +83,20 @@ class StatusManager:
     def get_status(self, name: str) -> Literal["on", "off", "starting", "stopping"]:
         if name not in self.services:
             raise ServiceNotFoundError(f"{name} is not a valid service name")
-        
+
         return self._services[name].status
-    
+
     def get_seconds_until_sleep(self, name: str) -> float:
         if name not in self.services:
             raise ServiceNotFoundError(f"{name} is not a valid service name")
-        
+
         return self._services[name].seconds_until_sleep
 
     def get_name_by_status(
         self, status_list: list[Literal["on", "off", "starting", "stopping"]]
     ) -> list[str]:
         for status in status_list:
-            if status not in ['on', 'off', 'starting', 'stopping']:
+            if status not in ["on", "off", "starting", "stopping"]:
                 raise ValueError(f"{status} not valid status")
 
         found_services = []
@@ -107,8 +109,7 @@ class StatusManager:
     def set_status(self, name: str, status: Literal["on", "off", "starting", "stopping"]) -> None:
         if name not in self.services:
             raise ServiceNotFoundError(f"{name} is not a valid service name")
-        if status not in ['on', 'off', 'starting', 'stopping']:
+        if status not in ["on", "off", "starting", "stopping"]:
             raise ValueError(f"{status} not valid status")
-            
-        self._services[name].status = status
 
+        self._services[name].status = status

@@ -1,13 +1,15 @@
-from .config import get_LM_settings, ServiceConfigRegistry
-from .runtime import Runtime
-from .state import StatusManager
-from .orchestrator import Orchestrator
 from contextlib import asynccontextmanager
-from .monitor import Monitor
-from .logging import get_logger#
+
 import uvicorn
 from fastapi import FastAPI
+
 from .api import router
+from .config import ServiceConfigRegistry, get_LM_settings
+from .logging import get_logger  #
+from .monitor import Monitor
+from .orchestrator import Orchestrator
+from .runtime import Runtime
+from .state import StatusManager
 
 
 def create_app():
@@ -44,16 +46,15 @@ def create_app():
     app.include_router(router)
     return app
 
-    
 
 if __name__ == "__main__":
     get_logger(__name__).info("Starting assistant server...")
-        
+
     settings = get_LM_settings()
     # app = create_app(settings)
 
     uvicorn.run(
-        f"src.server_manager.main:create_app",
+        "src.server_manager.main:create_app",
         factory=True,
         host=settings.api_host,
         port=settings.api_port,
