@@ -47,7 +47,7 @@ class ServiceConfig(BaseModel):
     compose_service: str
     container_name: str
     health_url: str | None = None
-    activity_url: str | None = None
+    activity_url: str = ""
     public_url: str | None = None
     idle_timeout_seconds: int = 600
     enabled: bool = True
@@ -70,10 +70,7 @@ class ServiceConfigRegistry:
 
         for name, config_data in raw_services.items():
             try:
-                services[name] = ServiceConfig(
-                    name=name,
-                    **config_data,
-                )
+                services[name] = ServiceConfig(**config_data)
             except Exception as e:
                 raise ValueError(f"Invalid config for service '{name}': {e}") from e
 

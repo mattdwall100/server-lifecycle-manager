@@ -20,11 +20,17 @@ class Orchestrator:
         self.status_manager = status_manager
         self.config_registry = config_registry
 
+    async def update_all_statuses(self) -> None:
+        for name in self.config_registry.list_services():
+            await self.update_status(name)
+        logger.info("update_all_statuses | success")
+
     async def update_status(self, name: str) -> Literal["on", "off", "starting", "stopping"]:
         if name not in self.config_registry.list_services():
             raise ServiceNotFoundError(f"update_status | Service {name} not found")
 
-        updated_status = await self.runtime.get_status(name)
+        service = self.config_registry.get(name)
+        updated_status = await self.runtime.get_status(service)
         self.status_manager.set_status(name, updated_status)
         return updated_status
 
@@ -38,10 +44,11 @@ class Orchestrator:
                 f"Service {name}: status={status}, cant start until current action is complete"
             )
 
-        await self.runtime.start(name)
+        service = self.config_registry.get(name)
+        await self.runtime.start(service)
         self.status_manager.set_status(name, "starting")
 
-    async def stop(self, name: str):
+    async def stop(self, name: str) -> None:
         if name not in self.config_registry.list_services():
             raise ServiceNotFoundError(f"update_status | Service {name} not found")
 
@@ -51,14 +58,15 @@ class Orchestrator:
                 f"Service {name}: status={status}, cant stop until current action is complete"
             )
 
-        await self.runtime.start(name)
+        service = self.config_registry.get(name)
+        await self.runtime.stop(service)
         self.status_manager.set_status(name, "stopping")
 
-    async def stop_if_idle(self, name: str) -> str:
+    async def stop_if_idle(self, name: str) -> None:
         new_status = await self.update_status(name)
         if new_status != "on":
             logger.info(f"stop_if_idle | {name} not on. Aborting")
-            return
+            return None
 
         seconds_until_sleep = self.get_seconds_until_sleep(name)
         if seconds_until_sleep < 0:
@@ -79,7 +87,7 @@ class Orchestrator:
     def get_name_by_status(
         self, status_list: list[Literal["on", "off", "starting", "stopping"]]
     ) -> list[str]:
-        return self.status_manager(status_list)
+        return self.status_manager.get_name_by_status(status_list)
 
     # Published ServiceConfigRegistryMethods ------------
     def list_services(self) -> list[str]:

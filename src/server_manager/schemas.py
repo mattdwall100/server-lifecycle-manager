@@ -1,12 +1,17 @@
 from pydantic import BaseModel
 
 
-class ServiceNotFoundError(ValueError):
-    pass
+class ServiceNotFoundError(ValueError): ...
 
 
 class RuntimeCommandError(RuntimeError):
-    stderr: str | None = None
+    def __init__(
+        self,
+        *args: object,
+        stderr: str = "",
+    ):
+        super().__init__(*args)
+        self.stderr = stderr
 
 
 class ServiceListResponse(BaseModel):

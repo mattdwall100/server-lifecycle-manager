@@ -36,7 +36,7 @@ class Monitor:
                 name="pending-status-monitor",
             ),
         ]
-        logger.info("Monitor started")
+        logger.info("start | Monitor started")
 
     async def stop(self) -> None:
         if not self._tasks:
@@ -51,7 +51,7 @@ class Monitor:
                 await task
         self._tasks.clear()
 
-    async def _timeout_loop(self):
+    async def _timeout_loop(self) -> None:
         # every interval, ask orchestrator what needs to be checked for idleness,
 
         while True:
@@ -70,7 +70,7 @@ class Monitor:
 
             await asyncio.sleep(self.timeout_interval)
 
-    async def _check_pending_loop(self):
+    async def _check_pending_loop(self) -> None:
         # every interval, ask orchestrator for starting/stopping services and check status
 
         while True:

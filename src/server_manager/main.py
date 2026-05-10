@@ -1,4 +1,6 @@
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from typing import Any
 
 import uvicorn
 from fastapi import FastAPI
@@ -12,13 +14,16 @@ from .runtime import Runtime
 from .state import StatusManager
 
 
-def create_app():
+def create_app() -> FastAPI:
     settings = get_LM_settings()
     config_registry = ServiceConfigRegistry._from_yaml(settings.services_config_path)
+    get_logger(__name__).info("_from_yaml | ServiceConfigRegistry create successfully from yaml")
 
     runtime = Runtime()
 
-    status_manager = StatusManager.from_runtime_and_config(runtime, config_registry)
+    # Note that the runtime is async, uvicorn doesnt support it.
+    # So we start by providing all statuses "on" status, and update them in the app lifespan.
+    status_manager = StatusManager.from_config(config_registry)
 
     orchestrator = Orchestrator(
         runtime=runtime,
@@ -34,8 +39,15 @@ def create_app():
 
     # Asynchronous custom context manager is a param for fastapi app for start and end tasks
     @asynccontextmanager
-    async def lifespan(app: FastAPI):
+    async def lifespan(app: FastAPI) -> AsyncGenerator[Any]:
+        await orchestrator.update_all_statuses()
+        status_string = ""
+        for service in config_registry.list_services():
+            status_string += f"{service}={status_manager.get_status(service)}, "
+        get_logger(__name__).info(f"create_app | current statuses: {status_string}")
+
         monitor.start()
+
         yield
         # await because monitor.stop is an async task and we want it to complete
         await monitor.stop()
@@ -44,6 +56,7 @@ def create_app():
     app.state.orchestrator = orchestrator
 
     app.include_router(router)
+    get_logger(__name__).info("create_app | fastapi app created successfully")
     return app
 
 

@@ -1,13 +1,14 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 
+from .logging import get_logger
 from .orchestrator import Orchestrator
 from .schemas import ServiceListResponse, ServiceNotFoundError, StatusResponse, SuccessResponse
-from .state import ServiceStatus
 
 router = APIRouter()
+logger = get_logger(__name__)
 
 
-def get_orchestrator(request: Request):
+def get_orchestrator(request: Request) -> Orchestrator:
     return request.app.state.orchestrator
 
 
@@ -28,32 +29,38 @@ def get_service_status(
             status=200,
         )
     except ServiceNotFoundError as e:
-        return StatusResponse(content=str(e), status="404")
+        logger.error(f"get_service_status | service not found name={name}, exception={e}")
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
-        return StatusResponse(content=str(e), status="500")
+        logger.error(f"get_service_status | internal server error name={name}, exception={e}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/services/{name}/start")
 async def start_service(
     name: str, orchestrator: Orchestrator = Depends(get_orchestrator)
-) -> ServiceStatus:
+) -> SuccessResponse:
     try:
         await orchestrator.start(name)
         return SuccessResponse(content=f"sucess: {name} is starting", status=200)
     except ServiceNotFoundError as e:
-        return StatusResponse(content=str(e), status="404")
+        logger.error(f"start_service | service not found name={name}, exception={e}")
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
-        return StatusResponse(content=str(e), status="500")
+        logger.error(f"start_service | internal server error name={name}, exception={e}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/services/{name}/stop")
 async def stop_service(
     name: str, orchestrator: Orchestrator = Depends(get_orchestrator)
-) -> ServiceStatus:
+) -> SuccessResponse:
     try:
         await orchestrator.stop(name)
         return SuccessResponse(content=f"sucess: {name} is stopping", status=200)
     except ServiceNotFoundError as e:
-        return StatusResponse(content=str(e), status="404")
+        logger.error(f"stop_service | service not found name={name}, exception={e}")
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
-        return StatusResponse(content=str(e), status="500")
+        logger.error(f"stop_service | internal server error name={name}, exception={e}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
