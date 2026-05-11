@@ -1,7 +1,7 @@
 import asyncio
 import json
+import shlex
 import subprocess
-from pathlib import Path
 from typing import Literal
 
 import requests
@@ -36,26 +36,29 @@ class Runtime:
     ) -> Literal["on", "off", "starting", "stopping"]:
         name = service.display_name
         container = service.container_name
+        mounted_service = service.compose_service
 
         # Handling runtime errors
         try:
             state_result = await self.run_subprocess(
-                f"docker inspect {container} --format '{{json .State}}'"
+                'docker inspect --format "{{json .State}}" ' + container,
+                cwd=f"/app/{mounted_service}",  # mounting via directory of service via volumes
             )
         except subprocess.TimeoutExpired:
             logger.warning(f"get_status timed out | service={name}, returned='off'")
             return "off"
         except RuntimeCommandError as e:
-            if "no such object" in e.stderr.lower() or "no such container" in e.stderr.lower():
-                logger.warning(
-                    "get_status had non-fatal runtime error | service={name}, returned='off'"
-                )
-                return "off"
-            else:
-                # In the future, can use std error to better know whether the program is off or
-                # "unknown"/"error" state, These two states would have to be added and handled
-                # differently
-                raise e
+            for parse_object in ["map has no entry for key", "no such object", "no such container"]:
+                if parse_object in e.stderr.lower():
+                    logger.warning(
+                        f"""get_status had non-fatal runtime error | 
+                        service={name}, reason={parse_object}, returned='off'"""
+                    )
+                    return "off"
+            # In the future, can use std error to better know whether the program is off or
+            # "unknown"/"error" state, These two states would have to be added and handled
+            # differently
+            raise e
 
         # Translating Docker state to internal states
         try:
@@ -81,14 +84,16 @@ class Runtime:
         return str(response.content)
 
     async def start(self, service: ServiceConfig) -> str:
-        compose_path = Path(service.compose_file)
-        await self.run_subprocess(f"docker compose -f {compose_path} up -d assistant-server")
+        mounted_service = service.compose_service
+
+        await self.run_subprocess("docker compose up -d", cwd=f"/app/{mounted_service}")
         # If no error in running the command, state is now "starting"
         return "starting"
 
     async def stop(self, service: ServiceConfig) -> str:
-        compose_path = Path(service.compose_file)
-        await self.run_subprocess(f"docker compose -f {compose_path} stop assistant-server")
+        mounted_service = service.compose_service
+        await self.run_subprocess("docker compose stop", cwd=f"/app/{mounted_service}")
+
         # If no error in running the command, state is now "stopping"
         if not service.clean_up:
             return "stopping"
@@ -104,16 +109,21 @@ class Runtime:
         return "stopping"
 
     async def run_subprocess(
-        self, command: str, timeout: int = 30
+        self, command: str, timeout: int = 30, cwd: str = None
     ) -> subprocess.CompletedProcess[str]:
-        command_list = command.split(" ")
-        kwargs = {"args": command_list, "capture_output": True, "text": True, "timeout": timeout}
+        command_list = shlex.split(command)
+        kwargs = {
+            "args": command_list,
+            "capture_output": True,
+            "text": True,
+            "timeout": timeout,
+            "cwd": cwd,
+        }
         try:
             result = await asyncio.to_thread(
                 subprocess.run,
                 **kwargs,
             )
-            print(f"State result: {result}")
         except subprocess.TimeoutExpired as e:
             logger.error(f"run_subprocess failed | TimeoutExpired command={command}")
             raise e

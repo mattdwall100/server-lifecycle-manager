@@ -1,0 +1,20 @@
+services:
+  server-lifecycle-manager:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: server-lifecycle-manager
+    env_file:
+      - .env
+    environment:
+      API_HOST: 0.0.0.0 # override, listen on all interfaces
+      API_PORT: 9000 # override
+    ports:
+      - "9000:9000" # connect 9000 container to 9000 host
+    volumes: #test volumes for mounting docker socket
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Service folder mounts:
+      - C:\Users\Admin\Documents\Projects\Local-AI-Assistant\local-assistant-server:/app/local-assistant-server
+    extra_hosts:
+      - "host.docker.internal:host-gateway" #hostname pointing to host machine default docker gateway/bridge
+    restart: no #Change in future if change monitoring
