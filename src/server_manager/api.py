@@ -17,6 +17,7 @@ def get_services(orchestrator: Orchestrator = Depends(get_orchestrator)) -> Serv
     services = orchestrator.list_services()
     return ServiceListResponse(content=services)
 
+
 @router.get("/services/{name}/activity", response_model=StatusResponse)
 def get_service_status(
     name: str, orchestrator: Orchestrator = Depends(get_orchestrator)
@@ -26,7 +27,7 @@ def get_service_status(
     return StatusResponse(
         content=str(seconds),
         status=200
-        )
+    )
 
 
 @router.get("/services/{name}/status", response_model=StatusResponse)
