@@ -34,7 +34,7 @@ class Runtime:
     async def get_status(
         self, service: ServiceConfig
     ) -> Literal["on", "off", "starting", "stopping"]:
-        name = service.display_name
+        name = service.name
         container = service.container_name
         mounted_service = service.compose_service
 
@@ -77,11 +77,20 @@ class Runtime:
             logger.error(f"get_status failed | unknown state_result returned: {str(state_result)}")
             raise ValueError("get_status failed | unknown state_result returned, not handled")
 
-    async def get_activity(self, service: ServiceConfig, timeout: int = 30) -> str:
-        response = await asyncio.to_thread(
-            requests.get, **{"url": service.activity_url, "timeout": timeout}
-        )
-        return str(response.content)
+    async def get_activity(self, service: ServiceConfig, timeout: int = 5) -> str:
+        try:
+            response = await asyncio.to_thread(
+                requests.get, 
+                **{"url": service.activity_url, "timeout": timeout}
+            )
+        except Exception as e:
+            # Most likely error is that the app is still starting,
+            # So we should change the state back so that it stays as 
+            logger.error(f"get_activity failed | name={service.name}, exception={str(e)}")
+            raise e from e
+        else:
+            response_object = response.json()
+            return str(response_object["last_activity_time"])
 
     async def start(self, service: ServiceConfig) -> str:
         mounted_service = service.compose_service

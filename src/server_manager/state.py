@@ -42,6 +42,7 @@ class ServiceStatus(BaseModel):
             raise AttributeError("Service isnt on, cannot get seconds until sleep")
 
         if self.last_activity_at is None:
+            self.last_activity_at = str(datetime.now())
             self.seconds_until_sleep_priv = (
                 self.idle_timeout_seconds
             )  # On start-up, set to idle timeout
@@ -52,9 +53,9 @@ class ServiceStatus(BaseModel):
         time_now = datetime.now()
         seconds_since_last_activity = (time_now - last_activity_time).total_seconds()
 
-        self._seconds_until_sleep = self.idle_timeout_seconds - seconds_since_last_activity
+        self.seconds_until_sleep_priv = self.idle_timeout_seconds - seconds_since_last_activity
         # If negative, will update poll for activity, if still negative, turn off
-        return self._seconds_until_sleep
+        return self.seconds_until_sleep_priv
 
 
 class StatusManager:
@@ -99,10 +100,13 @@ class StatusManager:
         for status in status_list:
             if status not in ["on", "off", "starting", "stopping"]:
                 raise ValueError(f"{status} not valid status")
-
+        
+        logger.debug(f"get_name_by_status looking | status_list={status_list}")
         found_services = []
         for name, service in self._services.items():
+            logger.debug(f"get_name_by_status looking | name={name}, status={service.status}")
             if service.status in status_list:
+                print("found")
                 found_services.append(name)
         return found_services
 
@@ -114,3 +118,11 @@ class StatusManager:
             raise ValueError(f"{status} not valid status")
 
         self._services[name].status = status
+
+    def set_last_activity(self, name: str, last_activity: str) -> None:
+        try:
+            datetime.fromisoformat(last_activity)
+        except Exception as e:
+            logger.error(f"set_last_activity failed | last_activity={last_activity}, exception={e}")
+            raise e
+        self._services[name].last_activity_at=last_activity

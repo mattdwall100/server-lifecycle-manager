@@ -41,6 +41,7 @@ def create_app() -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncGenerator[Any]:
         await orchestrator.update_all_statuses()
+        await orchestrator.update_all_activities()
         status_string = ""
         for service in config_registry.list_services():
             status_string += f"{service}={status_manager.get_status(service)}, "

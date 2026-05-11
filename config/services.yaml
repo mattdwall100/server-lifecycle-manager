@@ -1,14 +1,13 @@
 services:
   local-assistant-server:
-    display_name: "local-assistant-server"
     #compose_file: "/services/local-assistant-server/docker-compose.yml"
     compose_file: "docker-compose.yml" # change back when done testing volume
     compose_service: "local-assistant-server"
     container_name: "assistant-server"
     health_url: "http://127.0.0.1:8000/health"
-    activity_url: "http://127.0.0.1:8000/activity"
+    activity_url: "http://host.docker.internal:8000/activity"
     public_url: "http://server.local:8000"
-    idle_timeout_seconds: 300
+    idle_timeout_seconds: 20
     enabled: true
     clean_up:
       ollama_unload: systemctl stop ollama

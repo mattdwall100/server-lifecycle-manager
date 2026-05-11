@@ -42,7 +42,7 @@ def get_LM_settings() -> Settings:
 
 
 class ServiceConfig(BaseModel):
-    display_name: str
+    name: str
     compose_file: str
     compose_service: str
     container_name: str
@@ -70,6 +70,7 @@ class ServiceConfigRegistry:
 
         for name, config_data in raw_services.items():
             try:
+                config_data["name"] = name # Adds name inside config too
                 services[name] = ServiceConfig(**config_data)
             except Exception as e:
                 raise ValueError(f"Invalid config for service '{name}': {e}") from e
