@@ -96,7 +96,7 @@ class Monitor:
                         if "emote end closed connection without response" in str(e).lower(): 
                             logger.info(f"_check_pending_loop ClosedConnectionError | /activity not yet open, name={name}, exc={e}")
                             self.orchestrator.set_status(name, old_status) # redo loop
-                        elif "[errno 11] connection refused" in str(e).lower():
+                        elif "connection refused" in str(e).lower():
                             logger.info(f"_check_pending_loop ConnectionError | /activity not yet open, name={name}")
                             self.orchestrator.set_status(name, old_status) # redo loop
                         else:
