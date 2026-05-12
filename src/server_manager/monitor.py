@@ -92,15 +92,16 @@ class Monitor:
                     # Once start has succeeded, update its activity, redo if cant reach
                     try:
                         await self.orchestrator.update_last_activity(name)
-                    except ConnectionError:
-                        logger.info(f"_check_pending_loop ConnectionError | /activity not yet open, name={name}")
-                        self.orchestrator.set_status(name, old_status) # redo loop
                     except Exception as e:
-                        if not "emote end closed connection without response" in str(e).lower():
+                        if "emote end closed connection without response" in str(e).lower(): 
+                            logger.info(f"_check_pending_loop ClosedConnectionError | /activity not yet open, name={name}, exc={e}")
+                            self.orchestrator.set_status(name, old_status) # redo loop
+                        elif "[errno 11] connection refused" in str(e).lower():
+                            logger.info(f"_check_pending_loop ConnectionError | /activity not yet open, name={name}")
+                            self.orchestrator.set_status(name, old_status) # redo loop
+                        else:
                             logger.error(f"_check_pending_loop failed | unknown name={name}, exc={e}")
                             sys.exit()
-                        logger.info(f"_check_pending_loop ClosedConnectionError | /activity not yet open, name={name}, exc={e}")
-                        self.orchestrator.set_status(name, old_status) # redo loop
                     else:     
                         logger.info(f"_check_pending_loop success | service={name}, status={new_status}")
                 
