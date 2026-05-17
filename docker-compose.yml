@@ -17,4 +17,4 @@ services:
       - C:\Users\Admin\Documents\Projects\Local-AI-Assistant\local-assistant-server:/app/local-assistant-server
     extra_hosts:
       - "host.docker.internal:host-gateway" #hostname pointing to host machine default docker gateway/bridge
-    restart: no #Change in future if change monitoring
+    restart: on-failure #Change in future if change monitoring
