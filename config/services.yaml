@@ -7,7 +7,7 @@ services:
     health_url: "http://127.0.0.1:8000/health"
     activity_url: "http://host.docker.internal:8000/activity"
     public_url: "http://server.local:8000"
-    idle_timeout_seconds: 20
+    idle_timeout_seconds: 300
     enabled: true
     clean_up:
       ollama_unload: systemctl stop ollama
