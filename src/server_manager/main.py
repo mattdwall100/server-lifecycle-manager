@@ -4,6 +4,7 @@ from typing import Any
 
 import uvicorn
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from .api import router
 from .config import ServiceConfigRegistry, get_LM_settings
@@ -55,6 +56,14 @@ def create_app() -> FastAPI:
 
     app = FastAPI(title=settings.app_name, lifespan=lifespan)
     app.state.orchestrator = orchestrator
+
+    # Allow the browser-based web client to issue start/stop/status calls cross-origin.
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     app.include_router(router)
     get_logger(__name__).info("create_app | fastapi app created successfully")
