@@ -1,5 +1,5 @@
 # Server Lifecycle Manager
-
+**Entirely manually coded without AI coding agents.**
 A small FastAPI control-plane service for managing local Docker Compose workloads that support a local AI assistant stack.
 
 This repository is responsible for starting, stopping, monitoring, and idling down the assistant server process. It is designed to sit alongside the wider local AI assistant system: client applications talk to the assistant server, while this lifecycle manager controls whether that server is running and checks its activity state before shutting it down.
