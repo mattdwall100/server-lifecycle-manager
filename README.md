@@ -1,8 +1,26 @@
 # Server Lifecycle Manager
-**Entirely manually coded without AI coding agents.**
-A small FastAPI control-plane service for managing local Docker Compose workloads that support a local AI assistant stack.
 
-This repository is responsible for starting, stopping, monitoring, and idling down the assistant server process. It is designed to sit alongside the wider local AI assistant system: client applications talk to the assistant server, while this lifecycle manager controls whether that server is running and checks its activity state before shutting it down.
+**Part of the [Local AI Assistant](https://github.com/mattdwall100/local-assistant-server) system.**
+Start there for the architecture and the full voice pipeline.
+
+**Entirely manually coded — without AI coding agents.**
+
+A small FastAPI control-plane service that starts, stops, monitors, and idles down the assistant
+server's Docker Compose workload. **This is what makes a heavyweight local LLM stack practical on a
+single machine:** the assistant server (which pins a multi-GB model in memory via Ollama) sleeps
+when idle and wakes on demand, instead of holding RAM 24/7.
+
+Clients ask this manager to start the server, then talk to the server directly. The manager polls
+the server's `/activity` endpoint and, after an idle timeout, stops the container **and unloads
+the Ollama model** to free memory.
+
+```mermaid
+flowchart LR
+    C["mic-client / web-client"] -->|"POST /services/.../start"| M["lifecycle-manager :9000"]
+    M -->|"docker compose up -d / stop"| S["assistant-server :8000"]
+    M -->|"poll GET /activity"| S
+    M -->|"idle 300s → stop + systemctl stop ollama"| S
+```
 
 ## What It Does
 
@@ -34,6 +52,18 @@ The lifecycle manager is one part of a local AI assistant setup:
 | `POST` | `/services/{name}/stop` | Stop a service |
 
 FastAPI also provides generated OpenAPI documentation at `/docs`.
+
+## Status & known gaps
+
+Honest about where this sits — it's a working control plane with real edges to file down:
+
+- **No tests yet.** `tests/test_health.py` is an empty placeholder. The `pytest`/`pytest-cov`
+  tooling below is configured and ready, but no cases are written. The monitor loops and the
+  Docker-state → lifecycle-status mapping are the priorities to cover first.
+- **The API is unauthenticated.** A `SERVER_MANAGER_TOKEN` env var exists but is not yet enforced
+  on requests, so anything that can reach port 9000 can start/stop services. Fine on a trusted LAN;
+  a token check is needed before exposing it more widely.
+- `deployment/systemd/server-manager.service` is currently an empty stub.
 
 ## Tools and Technologies
 
